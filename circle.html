@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Record Button</title>
+    <style>
+        .record-button {
+            width: 100px;
+            height: 100px;
+            background-color: red;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: pointer;
+        }
+        
+        .record-button:hover {
+            background-color: darkred;
+        }
+
+        .record-icon {
+            width: 50px;
+            height: 50px;
+            background-color: white;
+            mask: url('https://img.icons8.com/ios-filled/50/000000/record.png') no-repeat center;
+            mask-size: contain;
+        }
+    </style>
+</head>
+<body>
+    <div class="record-button" id="recordButton">
+        <div class="record-icon"></div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        document.getElementById("recordButton").addEventListener("mousedown", startRecording);
+        document.getElementById("recordButton").addEventListener("mouseup", stopRecording);
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+
+                    console.log("Recording started...");
+                })
+                .catch(error => {
+                    console.error("Error accessing microphone:", error);
+                });
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                // Save the file locally
+                const formData = new FormData();
+                formData.append('file', audioBlob, 'output.mp3');
+
+                // Send the file to the backend
+                fetch('http://localhost:8000/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("File uploaded:", data);
+                    playAudioFromBackend();
+                })
+                .catch(error => {
+                    console.error("Error uploading file:", error);
+                });
+            };
+        }
+
+        function playAudioFromBackend() {
+            fetch('http://localhost:8000/play')
+                .then(response => response.blob())
+                .then(blob => {
+                    const audioUrl = URL.createObjectURL(blob);
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                })
+                .catch(error => {
+                    console.error("Error playing audio from backend:", error);
+                });
+        }
+    </script>
+</body>
+</html>
