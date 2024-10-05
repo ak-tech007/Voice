@@ -20,7 +20,7 @@ const RecordingWidget = () => {
 
     try {
       // POST the recorded file to the backend
-      const response = await fetch('http://localhost:8000', {
+      const response = await fetch('https://40ba-88-99-162-157.ngrok-free.app/', {
         method: 'POST',
         body: formData,
       });
